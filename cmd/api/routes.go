@@ -7,5 +7,7 @@ func (app *application) registerRoutes() http.Handler {
 
 	mux.HandleFunc("GET /api/v1/health", app.handleHealthCheck)
 
-	return mux
+	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic)
+
+	return standardMiddlewareChain(mux)
 }
