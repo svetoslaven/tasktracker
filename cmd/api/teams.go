@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/validator"
 )
 
 func (app *application) handleTeamCreation(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,48 @@ func (app *application) handleTeamRetrievalByName(w http.ResponseWriter, r *http
 	}
 
 	if err := app.sendJSONResponse(w, http.StatusOK, app.newTeamEnvelope(team), nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleRetrievalOfAllTeams(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+
+	validator := validator.New()
+
+	var filters models.TeamFilters
+
+	filters.Name = app.parseStringQueryParam(queryParams, "name", "")
+
+	if queryParams.Has("is_public") {
+		isPublic := app.parseBoolQueryParam(queryParams, "is_public", true, validator)
+		filters.IsPublic = &isPublic
+	}
+
+	if validator.HasErrors() {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	paginationOpts := app.parsePaginationOptsFromQueryParams(queryParams, "name", []string{"name"}, validator)
+
+	if validator.HasErrors() {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	retriever := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	teams, metadata, err := app.services.TeamService.GetAllTeams(ctx, filters, paginationOpts, retriever.ID)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusOK, envelope{"teams": teams, "metadata": metadata}, nil); err != nil {
 		app.sendServerErrorResponse(w, r, err)
 	}
 }

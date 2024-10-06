@@ -3,8 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/pagination"
 	"github.com/svetoslaven/tasktracker/internal/repositories"
 )
 
@@ -59,6 +61,62 @@ func (r *TeamRepository) GetTeamByName(ctx context.Context, name string, retriev
 	}
 
 	return &team, nil
+}
+
+func (r *TeamRepository) GetAllTeams(
+	ctx context.Context,
+	filters models.TeamFilters,
+	paginationOpts pagination.Options,
+	retrieverID int64,
+) ([]*models.Team, pagination.Metadata, error) {
+	var filterByVisibilityCondition string
+
+	args := []any{retrieverID, filters.Name, paginationOpts.Limit(), paginationOpts.Offset()}
+
+	if filters.IsPublic != nil {
+		filterByVisibilityCondition = fmt.Sprintf("AND teams.is_public = $%d", len(args)+1)
+		args = append(args, filters.IsPublic)
+	}
+
+	query := fmt.Sprintf(
+		`
+		SELECT count(*) OVER(), teams.name, teams.is_public
+		FROM teams
+		LEFT JOIN memberships on memberships.team_id = teams.id AND memberships.member_id = $1
+		WHERE teams.name ILIKE '%%' || $2 || '%%' AND (teams.is_public = true OR memberships.member_id IS NOT NULL) %s
+		ORDER BY %s %s, name ASC
+		LIMIT $3 OFFSET $4
+		`,
+		filterByVisibilityCondition,
+		paginationOpts.SortColumn(), CalculateSortDirection(paginationOpts),
+	)
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, pagination.Metadata{}, err
+	}
+
+	defer rows.Close()
+
+	totalRecords := 0
+	teams := []*models.Team{}
+
+	for rows.Next() {
+		var team models.Team
+
+		if err := rows.Scan(&totalRecords, &team.Name, &team.IsPublic); err != nil {
+			return nil, pagination.Metadata{}, err
+		}
+
+		teams = append(teams, &team)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, pagination.Metadata{}, err
+	}
+
+	metadata := pagination.CalculateMetadata(paginationOpts.Page(), paginationOpts.PageSize(), totalRecords)
+	return teams, metadata, nil
 }
 
 func (r *TeamRepository) isDuplicateTeamNameError(err error) bool {

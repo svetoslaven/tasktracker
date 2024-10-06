@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/pagination"
 	"github.com/svetoslaven/tasktracker/internal/validator"
 )
 
@@ -33,6 +34,7 @@ type TokenService interface {
 type TeamService interface {
 	CreateTeam(ctx context.Context, name string, isPublic bool, creatorID int64) (*models.Team, *validator.Validator, error)
 	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
+	GetAllTeams(ctx context.Context, filters models.TeamFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Team, pagination.Metadata, error)
 }
 
 type ServiceRegistry struct {

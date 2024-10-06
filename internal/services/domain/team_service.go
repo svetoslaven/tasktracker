@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/pagination"
 	"github.com/svetoslaven/tasktracker/internal/repositories"
 	"github.com/svetoslaven/tasktracker/internal/validator"
 )
@@ -49,6 +50,15 @@ func (s *TeamService) CreateTeam(
 
 func (s *TeamService) GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error) {
 	return s.getTeamByName(ctx, name, retrieverID)
+}
+
+func (s *TeamService) GetAllTeams(
+	ctx context.Context,
+	filters models.TeamFilters,
+	paginationOpts pagination.Options,
+	retrieverID int64,
+) ([]*models.Team, pagination.Metadata, error) {
+	return s.TeamRepo.GetAllTeams(ctx, filters, paginationOpts, retrieverID)
 }
 
 func (s *TeamService) getTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error) {

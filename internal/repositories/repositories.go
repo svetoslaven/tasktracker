@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/pagination"
 )
 
 var (
@@ -34,6 +35,7 @@ type TokenRepository interface {
 type TeamRepository interface {
 	InsertTeam(ctx context.Context, team *models.Team, creatorID int64) error
 	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
+	GetAllTeams(ctx context.Context, filters models.TeamFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Team, pagination.Metadata, error)
 }
 
 type RepositoryRegistry struct {
