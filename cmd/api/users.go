@@ -52,11 +52,8 @@ func (app *application) handleUserRetrievalByUsername(w http.ResponseWriter, r *
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	user, err := app.services.UserService.GetUserByUsername(ctx, username)
-	if err != nil {
-		app.handleServiceRetrievalError(w, r, err, func(w http.ResponseWriter, r *http.Request) {
-			app.sendNotFoundResponse(w, r, "A user with this username does not exist.")
-		})
+	user, ok := app.getUserByUsername(ctx, w, r, username)
+	if !ok {
 		return
 	}
 
@@ -145,6 +142,21 @@ func (app *application) handleUserPasswordReset(w http.ResponseWriter, r *http.R
 	}
 }
 
+func (app *application) getUserByUsername(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	username string,
+) (*models.User, bool) {
+	user, err := app.services.UserService.GetUserByUsername(ctx, username)
+	if err != nil {
+		app.handleServiceRetrievalError(w, r, err, app.sendUserNotFoundResponse)
+		return nil, false
+	}
+
+	return user, true
+}
+
 func (app *application) getUserByEmail(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -167,4 +179,8 @@ func (app *application) getUserByEmail(
 
 func (app *application) newUserEnvelope(user *models.User) envelope {
 	return envelope{"user": user}
+}
+
+func (app *application) sendUserNotFoundResponse(w http.ResponseWriter, r *http.Request) {
+	app.sendNotFoundResponse(w, r, "A user with this username does not exist.")
 }
