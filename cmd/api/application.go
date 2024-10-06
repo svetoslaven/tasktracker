@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ type application struct {
 	cfg      config
 	logger   *jsonlog.Logger
 	services services.ServiceRegistry
+	wg       sync.WaitGroup
 }
 
 func (app *application) run() error {
@@ -50,6 +52,12 @@ func (app *application) run() error {
 			shutdownErrorCh <- err
 			return
 		}
+
+		app.logger.LogInfo("completing background tasks", map[string]string{
+			"addr": srv.Addr,
+		})
+
+		app.wg.Wait()
 
 		close(shutdownErrorCh)
 	}()
