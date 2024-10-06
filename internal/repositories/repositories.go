@@ -36,6 +36,9 @@ type TeamRepository interface {
 	InsertTeam(ctx context.Context, team *models.Team, creatorID int64) error
 	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
 	GetAllTeams(ctx context.Context, filters models.TeamFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Team, pagination.Metadata, error)
+	GetMemberRole(ctx context.Context, teamID, memberID int64) (models.MemberRole, error)
+	UpdateTeam(ctx context.Context, team *models.Team) error
+	DeleteTeam(ctx context.Context, teamID int64) error
 }
 
 type RepositoryRegistry struct {

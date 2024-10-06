@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"github.com/svetoslaven/tasktracker/internal/services"
 	"github.com/svetoslaven/tasktracker/internal/validator"
 )
 
@@ -96,6 +98,84 @@ func (app *application) handleRetrievalOfAllTeams(w http.ResponseWriter, r *http
 	}
 
 	if err := app.sendJSONResponse(w, http.StatusOK, envelope{"teams": teams, "metadata": metadata}, nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleTeamPartialUpdate(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name     *string `json:"name"`
+		IsPublic *bool   `json:"is_public"`
+	}
+
+	if err := app.parseJSONRequestBody(w, r, &input); err != nil {
+		app.handleJSONRequestBodyParseError(w, r, err)
+		return
+	}
+
+	teamName := r.PathValue("team_name")
+
+	updater := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, teamName, updater.ID)
+	if !ok {
+		return
+	}
+
+	validator, err := app.services.TeamService.UpdateTeam(ctx, input.Name, input.IsPublic, team, updater.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrEditConflict):
+			app.sendEditConflictResponse(w, r)
+		case errors.Is(err, services.ErrNoPermission):
+			app.sendForbiddenResponse(w, r, "You do not have permission to edit this team.")
+		default:
+			app.sendServerErrorResponse(w, r, err)
+		}
+
+		return
+	}
+	if validator != nil {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusOK, app.newTeamEnvelope(team), nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleTeamDeletion(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("team_name")
+
+	remover := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, name, remover.ID)
+	if !ok {
+		return
+	}
+
+	if err := app.services.TeamService.DeleteTeam(ctx, team.ID, remover.ID); err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoRecordsFound):
+			app.sendTeamNotFoundResponse(w, r)
+		case errors.Is(err, services.ErrNoPermission):
+			app.sendForbiddenResponse(w, r, "You do not have permission to delete this team.")
+		default:
+			app.sendServerErrorResponse(w, r, err)
+		}
+
+		return
+	}
+
+	msg := "The team has been deleted successfully."
+	if err := app.sendJSONResponse(w, http.StatusOK, app.newMessageEnvelope(msg), nil); err != nil {
 		app.sendServerErrorResponse(w, r, err)
 	}
 }

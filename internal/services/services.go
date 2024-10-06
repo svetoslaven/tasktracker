@@ -14,6 +14,8 @@ var (
 	ErrNoRecordsFound = errors.New("services: no matching records found")
 
 	ErrEditConflict = errors.New("services: edit conflict")
+
+	ErrNoPermission = errors.New("services: no permission")
 )
 
 type UserService interface {
@@ -35,6 +37,8 @@ type TeamService interface {
 	CreateTeam(ctx context.Context, name string, isPublic bool, creatorID int64) (*models.Team, *validator.Validator, error)
 	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
 	GetAllTeams(ctx context.Context, filters models.TeamFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Team, pagination.Metadata, error)
+	UpdateTeam(ctx context.Context, newName *string, newIsPublic *bool, team *models.Team, updaterID int64) (*validator.Validator, error)
+	DeleteTeam(ctx context.Context, teamID, removerID int64) error
 }
 
 type ServiceRegistry struct {

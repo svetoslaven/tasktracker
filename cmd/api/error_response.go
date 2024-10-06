@@ -2,6 +2,10 @@ package main
 
 import "net/http"
 
+func (app *application) sendForbiddenResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	app.sendErrorResponse(w, r, http.StatusForbidden, msg)
+}
+
 func (app *application) sendNotFoundResponse(w http.ResponseWriter, r *http.Request, msg string) {
 	app.sendErrorResponse(w, r, http.StatusNotFound, msg)
 }

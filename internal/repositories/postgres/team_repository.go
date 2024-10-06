@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
@@ -117,6 +118,69 @@ func (r *TeamRepository) GetAllTeams(
 
 	metadata := pagination.CalculateMetadata(paginationOpts.Page(), paginationOpts.PageSize(), totalRecords)
 	return teams, metadata, nil
+}
+
+func (r *TeamRepository) GetMemberRole(ctx context.Context, teamID, memberID int64) (models.MemberRole, error) {
+	query := `
+	SELECT member_role
+	FROM memberships
+	WHERE team_id = $1 AND member_id = $2
+	`
+
+	var permissions models.MemberRole
+
+	if err := r.DB.QueryRowContext(ctx, query, teamID, memberID).Scan(&permissions); err != nil {
+		return models.MemberRoleRegular, handleQueryRowError(err)
+	}
+
+	return permissions, nil
+}
+
+func (r *TeamRepository) UpdateTeam(ctx context.Context, team *models.Team) error {
+	query := `
+	UPDATE teams
+	SET name = $1, is_public = $2, version = version + 1
+	WHERE id = $3 AND version = $4
+	RETURNING version
+	`
+
+	args := []any{team.Name, team.IsPublic, team.ID, team.Version}
+
+	if err := r.DB.QueryRowContext(ctx, query, args...).Scan(&team.Version); err != nil {
+		switch {
+		case r.isDuplicateTeamNameError(err):
+			return repositories.ErrDuplicateTeamName
+		case errors.Is(err, sql.ErrNoRows):
+			return repositories.ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *TeamRepository) DeleteTeam(ctx context.Context, teamID int64) error {
+	query := `
+	DELETE FROM teams
+	WHERE id = $1 
+	`
+
+	result, err := r.DB.ExecContext(ctx, query, teamID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return repositories.ErrNoRecordsFound
+	}
+
+	return nil
 }
 
 func (r *TeamRepository) isDuplicateTeamNameError(err error) bool {
