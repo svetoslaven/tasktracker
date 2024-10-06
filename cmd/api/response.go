@@ -7,6 +7,10 @@ import (
 
 type envelope map[string]any
 
+func (app *application) newMessageEnvelope(msg string) envelope {
+	return envelope{"message": msg}
+}
+
 func (app *application) sendJSONResponse(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	jsonData, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
