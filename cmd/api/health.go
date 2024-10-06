@@ -15,8 +15,7 @@ func (app *application) handleHealthCheck(w http.ResponseWriter, r *http.Request
 
 	err := app.sendJSONResponse(w, http.StatusOK, envelope, nil)
 	if err != nil {
-		msg := "The server encountered a problem and could not process your request. Please try again later."
-		http.Error(w, msg, http.StatusInternalServerError)
+		app.sendServerErrorResponse(w, r, err)
 		return
 	}
 }
