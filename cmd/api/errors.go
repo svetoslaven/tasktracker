@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/svetoslaven/tasktracker/internal/services"
 )
 
 func (app *application) handleJSONRequestBodyParseError(w http.ResponseWriter, r *http.Request, err error) {
@@ -44,4 +46,32 @@ func (app *application) handleJSONRequestBodyParseError(w http.ResponseWriter, r
 	}
 
 	app.sendErrorResponse(w, r, http.StatusBadRequest, msg)
+}
+
+func (app *application) handleServiceRetrievalError(
+	w http.ResponseWriter,
+	r *http.Request,
+	err error,
+	handler func(w http.ResponseWriter, r *http.Request),
+) {
+	switch {
+	case errors.Is(err, services.ErrNoRecordsFound):
+		handler(w, r)
+	default:
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleServiceUpdateError(
+	w http.ResponseWriter,
+	r *http.Request,
+	err error,
+	handler func(w http.ResponseWriter, r *http.Request),
+) {
+	switch {
+	case errors.Is(err, services.ErrEditConflict):
+		handler(w, r)
+	default:
+		app.sendServerErrorResponse(w, r, err)
+	}
 }

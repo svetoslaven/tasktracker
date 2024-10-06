@@ -7,6 +7,7 @@ import (
 
 func NewServiceRegistry(repos repositories.RepositoryRegistry) services.ServiceRegistry {
 	return services.ServiceRegistry{
-		UserService: &UserService{UserRepo: repos.UserRepo},
+		UserService:  &UserService{UserRepo: repos.UserRepo},
+		TokenService: &TokenService{TokenRepo: repos.TokenRepo},
 	}
 }

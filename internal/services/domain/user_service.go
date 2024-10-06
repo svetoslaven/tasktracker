@@ -61,6 +61,42 @@ func (s *UserService) RegisterUser(
 	return user, nil, nil
 }
 
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, *validator.Validator, error) {
+	validator := validator.New()
+
+	s.validateEmail(email, validator)
+
+	if validator.HasErrors() {
+		return nil, validator, nil
+	}
+
+	user, err := s.getByEmail(ctx, email)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return user, nil, nil
+}
+
+func (s *UserService) VerifyUser(ctx context.Context, user *models.User) error {
+	user.IsVerified = true
+
+	if err := s.UserRepo.Update(ctx, user); err != nil {
+		return handleRepositoryUpdateError(err)
+	}
+
+	return nil
+}
+
+func (s *UserService) getByEmail(ctx context.Context, email string) (*models.User, error) {
+	user, err := s.UserRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, handleRepositoryRetrievalError(err)
+	}
+
+	return user, nil
+}
+
 func (s *UserService) validateUsername(username string, validator *validator.Validator) {
 	validator.CheckNonZero(username, usernameField)
 	validator.CheckStringMaxLength(username, 32, usernameField)

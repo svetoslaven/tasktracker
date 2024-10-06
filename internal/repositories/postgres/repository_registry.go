@@ -8,6 +8,7 @@ import (
 
 func NewRepositoryRegistry(db *sql.DB) repositories.RepositoryRegistry {
 	return repositories.RepositoryRegistry{
-		UserRepo: &UserRepository{DB: db},
+		UserRepo:  &UserRepository{DB: db},
+		TokenRepo: &TokenRepository{DB: db},
 	}
 }

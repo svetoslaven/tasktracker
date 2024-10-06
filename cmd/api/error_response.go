@@ -2,6 +2,11 @@ package main
 
 import "net/http"
 
+func (app *application) sendEditConflictResponse(w http.ResponseWriter, r *http.Request) {
+	msg := "Unable to update the record due to an edit conflict. Please try again later."
+	app.sendErrorResponse(w, r, http.StatusConflict, msg)
+}
+
 func (app *application) sendValidationErrorResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.sendErrorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
