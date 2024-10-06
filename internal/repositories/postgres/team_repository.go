@@ -39,6 +39,28 @@ func (r *TeamRepository) InsertTeam(ctx context.Context, team *models.Team, crea
 	})
 }
 
+func (r *TeamRepository) GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error) {
+	query := `
+	SELECT id, name, is_public, version
+	FROM teams
+	WHERE name = $1 AND (is_public = true OR EXISTS(SELECT 1 FROM memberships WHERE team_id = id AND member_id = $2))
+	`
+
+	var team models.Team
+
+	err := r.DB.QueryRowContext(ctx, query, name, retrieverID).Scan(
+		&team.ID,
+		&team.Name,
+		&team.IsPublic,
+		&team.Version,
+	)
+	if err != nil {
+		return nil, handleQueryRowError(err)
+	}
+
+	return &team, nil
+}
+
 func (r *TeamRepository) isDuplicateTeamNameError(err error) bool {
 	return isDuplicateKeyError(err, "teams_name_key")
 }

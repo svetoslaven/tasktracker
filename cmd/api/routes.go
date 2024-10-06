@@ -17,6 +17,7 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("PUT /api/v1/users/password", app.handleUserPasswordReset)
 
 	mux.HandleFunc("POST /api/v1/teams", app.requireVerifiedUser(app.handleTeamCreation))
+	mux.HandleFunc("GET /api/v1/teams/{team_name}", app.requireVerifiedUser(app.handleTeamRetrievalByName))
 
 	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.authenticate)
 

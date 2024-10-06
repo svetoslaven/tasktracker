@@ -32,6 +32,7 @@ type TokenService interface {
 
 type TeamService interface {
 	CreateTeam(ctx context.Context, name string, isPublic bool, creatorID int64) (*models.Team, *validator.Validator, error)
+	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
 }
 
 type ServiceRegistry struct {

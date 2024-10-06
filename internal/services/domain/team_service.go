@@ -47,6 +47,19 @@ func (s *TeamService) CreateTeam(
 	return team, nil, nil
 }
 
+func (s *TeamService) GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error) {
+	return s.getTeamByName(ctx, name, retrieverID)
+}
+
+func (s *TeamService) getTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error) {
+	team, err := s.TeamRepo.GetTeamByName(ctx, name, retrieverID)
+	if err != nil {
+		return nil, handleRepositoryRetrievalError(err)
+	}
+
+	return team, nil
+}
+
 func (s *TeamService) validateTeamName(name string, validator *validator.Validator) {
 	validator.CheckNonZero(name, teamNameField)
 	validator.CheckStringMaxLength(name, 32, teamNameField)

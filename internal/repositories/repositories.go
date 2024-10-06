@@ -33,6 +33,7 @@ type TokenRepository interface {
 
 type TeamRepository interface {
 	InsertTeam(ctx context.Context, team *models.Team, creatorID int64) error
+	GetTeamByName(ctx context.Context, name string, retrieverID int64) (*models.Team, error)
 }
 
 type RepositoryRegistry struct {

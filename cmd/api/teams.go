@@ -39,6 +39,46 @@ func (app *application) handleTeamCreation(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+func (app *application) handleTeamRetrievalByName(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("team_name")
+
+	retriever := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, name, retriever.ID)
+	if !ok {
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusOK, app.newTeamEnvelope(team), nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) newTeamEnvelope(team *models.Team) envelope {
 	return envelope{"team": team}
+}
+
+func (app *application) getTeamByName(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+	retrieverID int64,
+) (*models.Team, bool) {
+	team, err := app.services.TeamService.GetTeamByName(ctx, name, retrieverID)
+	if err != nil {
+		app.handleServiceRetrievalError(w, r, err, func(w http.ResponseWriter, r *http.Request) {
+			app.sendTeamNotFoundResponse(w, r)
+		})
+		return nil, false
+	}
+
+	return team, true
+}
+
+func (app *application) sendTeamNotFoundResponse(w http.ResponseWriter, r *http.Request) {
+	app.sendNotFoundResponse(w, r, "A team with this name does not exist or you do not have permission to access it.")
 }
