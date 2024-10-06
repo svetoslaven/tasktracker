@@ -7,11 +7,19 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type config struct {
 	port        int
 	environment string
+
+	pg struct {
+		dsn             string
+		maxOpenConns    int
+		maxIdleConns    int
+		connMaxIdleTime time.Duration
+	}
 }
 
 func loadConfig() config {
@@ -29,6 +37,26 @@ func loadConfig() config {
 		"environment",
 		parseStringEnv("ENVIRONMENT", environmentDevelopment),
 		fmt.Sprintf("Set environment (%s|%s|%s)", environmentDevelopment, environmentStaging, environmentProduction),
+	)
+
+	flag.StringVar(&cfg.pg.dsn, "pg-dsn", os.Getenv("PG_DSN"), "Set PostgreSQL DSN")
+	flag.IntVar(
+		&cfg.pg.maxOpenConns,
+		"pg-max-open-conns",
+		parseIntEnv("PG_MAX_OPEN_CONNS", 25),
+		"Set PostgreSQL max open connections",
+	)
+	flag.IntVar(
+		&cfg.pg.maxIdleConns,
+		"pg-max-idle-conns",
+		parseIntEnv("PG_MAX_IDLE_CONNS", 25),
+		"Set PostgreSQL max idle connections",
+	)
+	flag.DurationVar(
+		&cfg.pg.connMaxIdleTime,
+		"pg-conn-max-idle-time",
+		parseDurationEnv("PG_CONN_MAX_IDLE_TIME", 15*time.Minute),
+		"Set PostgreSQL connections max idle time",
 	)
 
 	flag.Parse()
@@ -68,4 +96,18 @@ func parseStringEnv(key, fallback string) string {
 	}
 
 	return value
+}
+
+func parseDurationEnv(key string, fallback time.Duration) time.Duration {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return fallback
+	}
+
+	return duration
 }
