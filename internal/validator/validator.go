@@ -14,6 +14,14 @@ func New() *Validator {
 	return &Validator{Errors: make(map[string]string)}
 }
 
+func (v *Validator) CheckGreaterThanOrEqualTo(value, threshold int, field string) {
+	v.Check(value >= threshold, field, fmt.Sprintf("Must be greater than or equal to %d.", threshold))
+}
+
+func (v *Validator) CheckLessThanOrEqualTo(value, threshold int, field string) {
+	v.Check(value <= threshold, field, fmt.Sprintf("Must be less than or equal to %d.", threshold))
+}
+
 func (v *Validator) CheckStringMaxLength(value string, maxLength int, field string) {
 	v.Check(len(value) <= maxLength, field, fmt.Sprintf("Must be no more than %d bytes long.", maxLength))
 }
