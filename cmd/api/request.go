@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/svetoslaven/tasktracker/internal/validator"
 )
@@ -57,4 +58,29 @@ func (app *application) parseStringQueryParam(queryParams url.Values, key, fallb
 	}
 
 	return value
+}
+
+func (app *application) parseBoolQueryParam(
+	queryParams url.Values,
+	key string,
+	fallback bool,
+	validator *validator.Validator,
+) bool {
+	value := queryParams.Get(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	value = strings.ToLower(value)
+
+	switch value {
+	case "true":
+		return true
+	case "false":
+		return false
+	default:
+		validator.AddError(key, "Must be true or false.")
+		return fallback
+	}
 }
