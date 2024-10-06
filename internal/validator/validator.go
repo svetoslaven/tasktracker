@@ -32,8 +32,12 @@ func (v *Validator) CheckNonZero(data any, field string) {
 }
 
 func (v *Validator) Check(cond bool, field, msg string) {
+	if _, ok := v.Errors[field]; ok {
+		return
+	}
+
 	if !cond {
-		v.AddError(field, msg)
+		v.Errors[field] = msg
 	}
 }
 
