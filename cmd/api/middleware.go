@@ -69,6 +69,22 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 	})
 }
 
+func (app *application) requireVerifiedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.getRequestContextUser(r)
+
+		if !user.IsVerified {
+			msg := "Your account must be verified to access this resource."
+			app.sendErrorResponse(w, r, http.StatusForbidden, msg)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+
+	return app.requireAuthenticatedUser(fn)
+}
+
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := app.getRequestContextUser(r)
