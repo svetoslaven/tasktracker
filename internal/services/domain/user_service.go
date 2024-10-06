@@ -88,6 +88,33 @@ func (s *UserService) VerifyUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
+func (s *UserService) ResetUserPassword(
+	ctx context.Context,
+	user *models.User,
+	newPassword string,
+) (*validator.Validator, error) {
+	validator := validator.New()
+
+	s.validatePassword(newPassword, validator)
+
+	if validator.HasErrors() {
+		return validator, nil
+	}
+
+	passwordHash, err := s.hashPassword(newPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	user.PasswordHash = passwordHash
+
+	if err := s.UserRepo.Update(ctx, user); err != nil {
+		return nil, handleRepositoryUpdateError(err)
+	}
+
+	return nil, nil
+}
+
 func (s *UserService) getByEmail(ctx context.Context, email string) (*models.User, error) {
 	user, err := s.UserRepo.GetByEmail(ctx, email)
 	if err != nil {

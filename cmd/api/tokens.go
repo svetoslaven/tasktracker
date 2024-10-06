@@ -55,6 +55,37 @@ func (app *application) sendTokenEmailResponse(w http.ResponseWriter, r *http.Re
 	}
 }
 
+func (app *application) handlePasswordResetTokenCreation(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Email string `json:"email"`
+	}
+
+	if err := app.parseJSONRequestBody(w, r, &input); err != nil {
+		app.handleJSONRequestBodyParseError(w, r, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, ok := app.getUserByEmail(ctx, w, r, input.Email, func(w http.ResponseWriter, r *http.Request) {
+		app.sendTokenEmailResponse(w, r, models.TokenScopePasswordReset)
+	})
+	if !ok {
+		return
+	}
+
+	token, err := app.services.TokenService.GenerateToken(ctx, user.ID, 24*time.Hour, models.TokenScopePasswordReset)
+	if err != nil {
+		app.logError(err, r)
+	} else {
+		data := map[string]string{"passwordResetToken": token.Plaintext}
+		app.sendEmail(user.Email, "password_reset.tmpl", data)
+	}
+
+	app.sendTokenEmailResponse(w, r, models.TokenScopePasswordReset)
+}
+
 func (app *application) getTokenRecipient(
 	ctx context.Context,
 	w http.ResponseWriter,

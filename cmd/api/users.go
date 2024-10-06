@@ -83,6 +83,49 @@ func (app *application) handleUserVerification(w http.ResponseWriter, r *http.Re
 	}
 }
 
+func (app *application) handleUserPasswordReset(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		TokenPlaintext string `json:"token"`
+		NewPassword    string `json:"new_password"`
+	}
+
+	if err := app.parseJSONRequestBody(w, r, &input); err != nil {
+		app.handleJSONRequestBodyParseError(w, r, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, ok := app.getTokenRecipient(ctx, w, r, input.TokenPlaintext, models.TokenScopePasswordReset)
+	if !ok {
+		return
+	}
+
+	err := app.services.TokenService.DeleteAllTokensForRecipient(ctx, user.ID, models.TokenScopePasswordReset)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+
+	validator, err := app.services.UserService.ResetUserPassword(ctx, user, input.NewPassword)
+	if err != nil {
+		app.handleServiceUpdateError(w, r, err, func(w http.ResponseWriter, r *http.Request) {
+			app.sendEditConflictResponse(w, r)
+		})
+		return
+	}
+	if validator != nil {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	msg := "You have successfully reset your password."
+	if err := app.sendJSONResponse(w, http.StatusOK, app.newMessageEnvelope(msg), nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) getUserByEmail(
 	ctx context.Context,
 	w http.ResponseWriter,

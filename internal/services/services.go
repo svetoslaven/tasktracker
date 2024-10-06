@@ -19,6 +19,7 @@ type UserService interface {
 	RegisterUser(ctx context.Context, username, email, password string) (*models.User, *validator.Validator, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, *validator.Validator, error)
 	VerifyUser(ctx context.Context, user *models.User) error
+	ResetUserPassword(ctx context.Context, user *models.User, newPassword string) (*validator.Validator, error)
 }
 
 type TokenService interface {
