@@ -86,6 +86,45 @@ func (app *application) handlePasswordResetTokenCreation(w http.ResponseWriter, 
 	app.sendTokenEmailResponse(w, r, models.TokenScopePasswordReset)
 }
 
+func (app *application) handleAuthenticationTokenCreation(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := app.parseJSONRequestBody(w, r, &input); err != nil {
+		app.handleJSONRequestBodyParseError(w, r, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, validator, err := app.services.UserService.GetUserByEmailAndPassword(ctx, input.Email, input.Password)
+	if err != nil {
+		app.handleServiceRetrievalError(w, r, err, func(w http.ResponseWriter, r *http.Request) {
+			app.sendUnauthorizedResponse(w, r, "You have entered invalid credentials.")
+		})
+
+		return
+	}
+	if validator != nil {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	token, err := app.services.TokenService.GenerateToken(ctx, user.ID, 24*time.Hour, models.TokenScopeAuthentication)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusOK, envelope{"token": token.Plaintext}, nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+}
+
 func (app *application) getTokenRecipient(
 	ctx context.Context,
 	w http.ResponseWriter,

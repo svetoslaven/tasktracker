@@ -9,12 +9,13 @@ func (app *application) registerRoutes() http.Handler {
 
 	mux.HandleFunc("POST /api/v1/tokens/verification", app.handleVerificationTokenCreation)
 	mux.HandleFunc("POST /api/v1/tokens/password-reset", app.handlePasswordResetTokenCreation)
+	mux.HandleFunc("POST /api/v1/tokens/authentication", app.handleAuthenticationTokenCreation)
 
 	mux.HandleFunc("POST /api/v1/users", app.handleUserRegistration)
 	mux.HandleFunc("PUT /api/v1/users/verified", app.handleUserVerification)
 	mux.HandleFunc("PUT /api/v1/users/password", app.handleUserPasswordReset)
 
-	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic)
+	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.authenticate)
 
 	return standardMiddlewareChain(mux)
 }

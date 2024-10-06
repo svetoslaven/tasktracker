@@ -2,6 +2,10 @@ package main
 
 import "net/http"
 
+func (app *application) sendUnauthorizedResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	app.sendErrorResponse(w, r, http.StatusUnauthorized, msg)
+}
+
 func (app *application) sendEditConflictResponse(w http.ResponseWriter, r *http.Request) {
 	msg := "Unable to update the record due to an edit conflict. Please try again later."
 	app.sendErrorResponse(w, r, http.StatusConflict, msg)

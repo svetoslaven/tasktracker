@@ -7,7 +7,9 @@ import (
 	bcryptfacade "github.com/svetoslaven/tasktracker/internal/facades/golang.org/x/crypto/bcrypt"
 	"github.com/svetoslaven/tasktracker/internal/models"
 	"github.com/svetoslaven/tasktracker/internal/repositories"
+	"github.com/svetoslaven/tasktracker/internal/services"
 	"github.com/svetoslaven/tasktracker/internal/validator"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -73,6 +75,36 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models
 	user, err := s.getByEmail(ctx, email)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	return user, nil, nil
+}
+
+func (s *UserService) GetUserByEmailAndPassword(
+	ctx context.Context,
+	email, password string,
+) (*models.User, *validator.Validator, error) {
+	validator := validator.New()
+
+	s.validateEmail(email, validator)
+	s.validatePassword(password, validator)
+
+	if validator.HasErrors() {
+		return nil, validator, nil
+	}
+
+	user, err := s.getByEmail(ctx, email)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err := bcryptfacade.Instance().CompareHashAndPassword(user.PasswordHash, []byte(password)); err != nil {
+		switch {
+		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
+			return nil, nil, services.ErrNoRecordsFound
+		default:
+			return nil, nil, err
+		}
 	}
 
 	return user, nil, nil
