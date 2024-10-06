@@ -1,0 +1,34 @@
+{{define "subject"}}Welcome to TaskTracker!{{end}}
+
+{{define "plainBody"}}
+Hello,
+
+Thanks for signing up for a TaskTracker account!
+Please send a request to the `PUT /api/v1/users/verified` endpoint with the following JSON body to verify your account: {"token": "{{.verificationToken}}"}
+Please note that this is one-time use token, and it will expire in 72 hours.
+
+Kind Regards,
+The TaskTracker Team
+{{end}}
+
+
+{{define "htmlBody"}}
+<!doctype html>
+<html>
+<head>
+    <meta name="viewpoint" content="width=device-width"/>
+    <meta http-equiv="Content-Type" content="text/html"; charset="UTF-8"/>
+</head>
+
+<body>
+    <p>Hello,</p>
+    <p>Thanks for signing up for a TaskTracker account!</p>
+    <p>Please send a request to the <code>PUT /api/v1/users/verified</code> endpoint
+    with the following JSON body to verify your account: <code>{"token": "{{.verificationToken}}"}</code></p>
+    <p>Please note that this is a one-time use token, and it will expire in 72 hours.</p>
+    <p>Kind Regards,</p>
+    <p>The TaskTracker Team</p>
+</body>
+
+</html>
+{{end}}

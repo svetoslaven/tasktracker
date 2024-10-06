@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/svetoslaven/tasktracker/internal/jsonlog"
+	"github.com/svetoslaven/tasktracker/internal/mailer"
 	"github.com/svetoslaven/tasktracker/internal/repositories/postgres"
 	"github.com/svetoslaven/tasktracker/internal/services/domain"
 )
@@ -28,6 +29,7 @@ func main() {
 		cfg:      cfg,
 		logger:   logger,
 		services: domain.NewServiceRegistry(postgres.NewRepositoryRegistry(db)),
+		mailer:   mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	if err := app.run(); err != nil {

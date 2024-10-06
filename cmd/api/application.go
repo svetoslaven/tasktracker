@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/jsonlog"
+	"github.com/svetoslaven/tasktracker/internal/mailer"
 	"github.com/svetoslaven/tasktracker/internal/services"
 )
 
@@ -20,6 +21,7 @@ type application struct {
 	cfg      config
 	logger   *jsonlog.Logger
 	services services.ServiceRegistry
+	mailer   mailer.Mailer
 	wg       sync.WaitGroup
 }
 

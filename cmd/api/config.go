@@ -20,6 +20,14 @@ type config struct {
 		maxIdleConns    int
 		connMaxIdleTime time.Duration
 	}
+
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 func loadConfig() config {
@@ -58,6 +66,12 @@ func loadConfig() config {
 		parseDurationEnv("PG_CONN_MAX_IDLE_TIME", 15*time.Minute),
 		"Set PostgreSQL connections max idle time",
 	)
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", os.Getenv("SMTP_HOST"), "Set SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", parseIntEnv("SMTP_PORT", 2525), "Set SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTP_USERNAME"), "Set SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "Set SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("SMTP_SENDER"), "Set SMTP sender")
 
 	flag.Parse()
 
