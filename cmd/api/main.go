@@ -4,6 +4,8 @@ import (
 	"os"
 
 	"github.com/svetoslaven/tasktracker/internal/jsonlog"
+	"github.com/svetoslaven/tasktracker/internal/repositories/postgres"
+	"github.com/svetoslaven/tasktracker/internal/services/domain"
 )
 
 const version = "1.0.0"
@@ -23,8 +25,9 @@ func main() {
 	logger.LogInfo("database connection pool established", nil)
 
 	app := &application{
-		cfg:    cfg,
-		logger: logger,
+		cfg:      cfg,
+		logger:   logger,
+		services: domain.NewServiceRegistry(postgres.NewRepositoryRegistry(db)),
 	}
 
 	if err := app.run(); err != nil {

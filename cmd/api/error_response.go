@@ -2,6 +2,10 @@ package main
 
 import "net/http"
 
+func (app *application) sendValidationErrorResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
+	app.sendErrorResponse(w, r, http.StatusUnprocessableEntity, errors)
+}
+
 func (app *application) sendServerErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logError(err, r)
 

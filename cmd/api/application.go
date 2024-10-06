@@ -12,11 +12,13 @@ import (
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/jsonlog"
+	"github.com/svetoslaven/tasktracker/internal/services"
 )
 
 type application struct {
-	cfg    config
-	logger *jsonlog.Logger
+	cfg      config
+	logger   *jsonlog.Logger
+	services services.ServiceRegistry
 }
 
 func (app *application) run() error {
