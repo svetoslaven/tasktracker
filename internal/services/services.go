@@ -30,7 +30,12 @@ type TokenService interface {
 	DeleteAllTokensForRecipient(ctx context.Context, recipientID int64, scope models.TokenScope) error
 }
 
+type TeamService interface {
+	CreateTeam(ctx context.Context, name string, isPublic bool, creatorID int64) (*models.Team, *validator.Validator, error)
+}
+
 type ServiceRegistry struct {
 	UserService  UserService
 	TokenService TokenService
+	TeamService  TeamService
 }

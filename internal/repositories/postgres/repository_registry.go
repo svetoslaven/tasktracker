@@ -10,5 +10,6 @@ func NewRepositoryRegistry(db *sql.DB) repositories.RepositoryRegistry {
 	return repositories.RepositoryRegistry{
 		UserRepo:  &UserRepository{DB: db},
 		TokenRepo: &TokenRepository{DB: db},
+		TeamRepo:  &TeamRepository{DB: db},
 	}
 }

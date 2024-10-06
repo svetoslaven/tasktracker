@@ -18,3 +18,10 @@ type Token struct {
 	ExpiresAt   time.Time  `json:"expires_at"`
 	Scope       TokenScope `json:"-"`
 }
+
+type Team struct {
+	ID       int64  `json:"-"`
+	Name     string `json:"name"`
+	IsPublic bool   `json:"is_public"`
+	Version  int    `json:"-"`
+}

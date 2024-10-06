@@ -14,6 +14,8 @@ var (
 
 	ErrDuplicateUsername = errors.New("repositories: duplicate username")
 	ErrDuplicateEmail    = errors.New("repositories: duplicate email")
+
+	ErrDuplicateTeamName = errors.New("repositories: duplicate team name")
 )
 
 type UserRepository interface {
@@ -29,7 +31,12 @@ type TokenRepository interface {
 	DeleteAllForRecipient(ctx context.Context, recipientID int64, scope models.TokenScope) error
 }
 
+type TeamRepository interface {
+	InsertTeam(ctx context.Context, team *models.Team, creatorID int64) error
+}
+
 type RepositoryRegistry struct {
 	UserRepo  UserRepository
 	TokenRepo TokenRepository
+	TeamRepo  TeamRepository
 }

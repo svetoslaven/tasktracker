@@ -9,5 +9,6 @@ func NewServiceRegistry(repos repositories.RepositoryRegistry) services.ServiceR
 	return services.ServiceRegistry{
 		UserService:  &UserService{UserRepo: repos.UserRepo},
 		TokenService: &TokenService{TokenRepo: repos.TokenRepo},
+		TeamService:  &TeamService{TeamRepo: repos.TeamRepo},
 	}
 }
