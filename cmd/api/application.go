@@ -10,16 +10,20 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/svetoslaven/tasktracker/internal/jsonlog"
 )
 
 type application struct {
-	cfg config
+	cfg    config
+	logger *jsonlog.Logger
 }
 
 func (app *application) run() error {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.cfg.port),
 		Handler:      app.registerRoutes(),
+		ErrorLog:     log.New(app.logger, "", 0),
 		IdleTimeout:  1 * time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -33,7 +37,9 @@ func (app *application) run() error {
 
 		quitSignal := <-quitSignalCh
 
-		log.Printf("caught %s signal", quitSignal.String())
+		app.logger.LogInfo("caught signal", map[string]string{
+			"signal": quitSignal.String(),
+		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -46,7 +52,10 @@ func (app *application) run() error {
 		close(shutdownErrorCh)
 	}()
 
-	log.Printf("starting %s server on %s", app.cfg.environment, srv.Addr)
+	app.logger.LogInfo("starting server", map[string]string{
+		"addr":        srv.Addr,
+		"environment": app.cfg.environment,
+	})
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
@@ -56,7 +65,9 @@ func (app *application) run() error {
 		return err
 	}
 
-	log.Printf("stopped server on %s", srv.Addr)
+	app.logger.LogInfo("stopped server", map[string]string{
+		"addr": srv.Addr,
+	})
 
 	return nil
 }
