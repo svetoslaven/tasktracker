@@ -17,6 +17,7 @@ var (
 
 type UserService interface {
 	RegisterUser(ctx context.Context, username, email, password string) (*models.User, *validator.Validator, error)
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, *validator.Validator, error)
 	GetUserByEmailAndPassword(ctx context.Context, email, password string) (*models.User, *validator.Validator, error)
 	VerifyUser(ctx context.Context, user *models.User) error

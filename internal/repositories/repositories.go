@@ -18,6 +18,7 @@ var (
 
 type UserRepository interface {
 	Insert(ctx context.Context, user *models.User) error
+	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 }

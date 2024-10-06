@@ -36,6 +36,31 @@ func (r *UserRepository) Insert(ctx context.Context, user *models.User) error {
 	return nil
 }
 
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	query := `
+	SELECT id, username, email, password_hash, is_verified, version
+	FROM users
+	WHERE username = $1
+	`
+
+	var user models.User
+
+	err := r.DB.QueryRowContext(ctx, query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.PasswordHash,
+		&user.IsVerified,
+		&user.Version,
+	)
+
+	if err != nil {
+		return nil, handleQueryRowError(err)
+	}
+
+	return &user, nil
+}
+
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
 	SELECT id, username, email, password_hash, is_verified, version

@@ -46,6 +46,25 @@ func (app *application) handleUserRegistration(w http.ResponseWriter, r *http.Re
 	}
 }
 
+func (app *application) handleUserRetrievalByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	user, err := app.services.UserService.GetUserByUsername(ctx, username)
+	if err != nil {
+		app.handleServiceRetrievalError(w, r, err, func(w http.ResponseWriter, r *http.Request) {
+			app.sendNotFoundResponse(w, r, "A user with this username does not exist.")
+		})
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusOK, app.newUserEnvelope(user), nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) handleUserVerification(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		TokenPlaintext string `json:"token"`
@@ -144,4 +163,8 @@ func (app *application) getUserByEmail(
 	}
 
 	return user, true
+}
+
+func (app *application) newUserEnvelope(user *models.User) envelope {
+	return envelope{"user": user}
 }

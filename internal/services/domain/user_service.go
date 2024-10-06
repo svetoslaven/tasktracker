@@ -63,6 +63,15 @@ func (s *UserService) RegisterUser(
 	return user, nil, nil
 }
 
+func (s *UserService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	user, err := s.UserRepo.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, handleRepositoryRetrievalError(err)
+	}
+
+	return user, nil
+}
+
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, *validator.Validator, error) {
 	validator := validator.New()
 

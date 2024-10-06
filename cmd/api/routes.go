@@ -12,6 +12,7 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("POST /api/v1/tokens/authentication", app.handleAuthenticationTokenCreation)
 
 	mux.HandleFunc("POST /api/v1/users", app.handleUserRegistration)
+	mux.HandleFunc("GET /api/v1/users/{username}", app.requireVerifiedUser(app.handleUserRetrievalByUsername))
 	mux.HandleFunc("PUT /api/v1/users/verified", app.handleUserVerification)
 	mux.HandleFunc("PUT /api/v1/users/password", app.handleUserPasswordReset)
 
