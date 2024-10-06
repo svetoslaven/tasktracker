@@ -5,6 +5,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
+
+	"github.com/svetoslaven/tasktracker/internal/validator"
 )
 
 func (app *application) parseJSONRequestBody(w http.ResponseWriter, r *http.Request, dest any) error {
@@ -22,4 +26,35 @@ func (app *application) parseJSONRequestBody(w http.ResponseWriter, r *http.Requ
 	}
 
 	return nil
+}
+
+func (app *application) parseIntQueryParam(
+	queryParams url.Values,
+	key string,
+	fallback int,
+	validator *validator.Validator,
+) int {
+	value := queryParams.Get(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		validator.AddError(key, "Must be an integer value.")
+		return fallback
+	}
+
+	return intValue
+}
+
+func (app *application) parseStringQueryParam(queryParams url.Values, key, fallback string) string {
+	value := queryParams.Get(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }
