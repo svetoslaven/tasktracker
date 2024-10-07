@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/validator"
 )
@@ -93,6 +94,27 @@ func (app *application) parseCSVQueryParam(queryParams url.Values, key string, f
 	}
 
 	return strings.Split(csv, ",")
+}
+
+func (app *application) parseTimeQueryParam(
+	queryParams url.Values,
+	key string,
+	fallback time.Time,
+	validator *validator.Validator,
+) time.Time {
+	value := queryParams.Get(key)
+
+	if value == "" {
+		return fallback
+	}
+
+	timeValue, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		validator.AddError(key, "Must be a valid time in RFC3339 format.")
+		return fallback
+	}
+
+	return timeValue
 }
 
 func (app *application) parseInt64PathParam(r *http.Request, key string) (int64, error) {
