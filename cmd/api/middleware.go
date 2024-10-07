@@ -97,3 +97,16 @@ func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.Han
 		next.ServeHTTP(w, r)
 	}
 }
+
+func (app *application) enforceURILength(next http.Handler) http.Handler {
+	maxURIBytes := 1_048_576
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(r.RequestURI) > maxURIBytes {
+			app.sendErrorResponse(w, r, http.StatusRequestURITooLong, "URI too long.")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

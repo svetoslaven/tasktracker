@@ -28,7 +28,7 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("POST /api/v1/invitations/rejected", app.requireVerifiedUser(app.handleInvitationRejecting))
 	mux.HandleFunc("DELETE /api/v1/invitations/{invitation_id}", app.requireVerifiedUser(app.handleInvitationDeletion))
 
-	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.authenticate)
+	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.enforceURILength, app.authenticate)
 
 	return standardMiddlewareChain(mux)
 }
