@@ -135,6 +135,80 @@ func (s *TeamService) DeleteTeam(ctx context.Context, teamID, removerID int64) e
 	return nil
 }
 
+func (s *TeamService) IsMember(ctx context.Context, teamID, userID int64) (bool, error) {
+	return s.isMemberInRole(ctx, teamID, userID, models.MemberRoleRegular)
+}
+
+func (s *TeamService) InviteUser(ctx context.Context, teamID, inviterID, inviteeID int64) error {
+	canInviteUser, err := s.isMemberInRole(ctx, teamID, inviterID, models.MemberRoleAdmin)
+	if err != nil {
+		return err
+	}
+
+	if !canInviteUser {
+		return services.ErrNoPermission
+	}
+
+	if err := s.TeamRepo.InsertInvitation(ctx, teamID, inviterID, inviteeID); err != nil {
+		switch {
+		case errors.Is(err, repositories.ErrInvitationExists):
+			return services.ErrInvitationExists
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *TeamService) GetAllInvitations(
+	ctx context.Context,
+	filters models.InvitationFilters,
+	paginationOpts pagination.Options,
+	retrieverID int64,
+) ([]*models.Invitation, pagination.Metadata, error) {
+	return s.TeamRepo.GetAllInvitations(ctx, filters, paginationOpts, retrieverID)
+}
+
+func (s *TeamService) AcceptInvitation(ctx context.Context, invitationID, inviteeID int64) error {
+	if err := s.TeamRepo.AcceptInvitation(ctx, invitationID, inviteeID); err != nil {
+		switch {
+		case errors.Is(err, repositories.ErrNoRecordsFound):
+			return services.ErrNoRecordsFound
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *TeamService) RejectInvitation(ctx context.Context, invitationID, inviteeID int64) error {
+	if err := s.TeamRepo.RejectInvitation(ctx, invitationID, inviteeID); err != nil {
+		switch {
+		case errors.Is(err, repositories.ErrNoRecordsFound):
+			return services.ErrNoRecordsFound
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *TeamService) DeleteInvitation(ctx context.Context, invitationID, removerID int64) error {
+	if err := s.TeamRepo.DeleteInvitation(ctx, invitationID, removerID); err != nil {
+		switch {
+		case errors.Is(err, repositories.ErrNoRecordsFound):
+			return services.ErrNoRecordsFound
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *TeamService) isMemberInRole(
 	ctx context.Context,
 	teamID, memberID int64,

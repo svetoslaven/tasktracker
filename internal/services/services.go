@@ -16,6 +16,8 @@ var (
 	ErrEditConflict = errors.New("services: edit conflict")
 
 	ErrNoPermission = errors.New("services: no permission")
+
+	ErrInvitationExists = errors.New("services: invitation already exists")
 )
 
 type UserService interface {
@@ -39,6 +41,13 @@ type TeamService interface {
 	GetAllTeams(ctx context.Context, filters models.TeamFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Team, pagination.Metadata, error)
 	UpdateTeam(ctx context.Context, newName *string, newIsPublic *bool, team *models.Team, updaterID int64) (*validator.Validator, error)
 	DeleteTeam(ctx context.Context, teamID, removerID int64) error
+
+	IsMember(ctx context.Context, teamID, userID int64) (bool, error)
+	InviteUser(ctx context.Context, teamID, inviterID, inviteeID int64) error
+	GetAllInvitations(ctx context.Context, filters models.InvitationFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Invitation, pagination.Metadata, error)
+	AcceptInvitation(ctx context.Context, invitationID, inviteeID int64) error
+	RejectInvitation(ctx context.Context, invitationID, inviteeID int64) error
+	DeleteInvitation(ctx context.Context, invitationID, removerID int64) error
 }
 
 type ServiceRegistry struct {

@@ -17,6 +17,8 @@ var (
 	ErrDuplicateEmail    = errors.New("repositories: duplicate email")
 
 	ErrDuplicateTeamName = errors.New("repositories: duplicate team name")
+
+	ErrInvitationExists = errors.New("repositories: invitation already exists")
 )
 
 type UserRepository interface {
@@ -39,6 +41,12 @@ type TeamRepository interface {
 	GetMemberRole(ctx context.Context, teamID, memberID int64) (models.MemberRole, error)
 	UpdateTeam(ctx context.Context, team *models.Team) error
 	DeleteTeam(ctx context.Context, teamID int64) error
+
+	InsertInvitation(ctx context.Context, teamID, inviterID, inviteeID int64) error
+	GetAllInvitations(ctx context.Context, filters models.InvitationFilters, paginationOpts pagination.Options, retrieverID int64) ([]*models.Invitation, pagination.Metadata, error)
+	AcceptInvitation(ctx context.Context, invitationID, inviteeID int64) error
+	RejectInvitation(ctx context.Context, invitationID, inviteeID int64) error
+	DeleteInvitation(ctx context.Context, invitationID, removerID int64) error
 }
 
 type RepositoryRegistry struct {

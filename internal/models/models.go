@@ -25,3 +25,10 @@ type Team struct {
 	IsPublic bool   `json:"is_public"`
 	Version  int    `json:"-"`
 }
+
+type Invitation struct {
+	ID      int64 `json:"id"`
+	Team    *Team `json:"team"`
+	Inviter *User `json:"inviter"`
+	Invitee *User `json:"invitee"`
+}
