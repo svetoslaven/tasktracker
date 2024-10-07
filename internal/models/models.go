@@ -32,3 +32,10 @@ type Invitation struct {
 	Inviter *User `json:"inviter"`
 	Invitee *User `json:"invitee"`
 }
+
+type Membership struct {
+	TeamID     int64      `json:"-"`
+	Member     *User      `json:"member"`
+	MemberRole MemberRole `json:"role"`
+	Version    int        `json:"-"`
+}

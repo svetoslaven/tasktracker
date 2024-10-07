@@ -21,6 +21,9 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("GET /api/v1/teams", app.requireVerifiedUser(app.handleRetrievalOfAllTeams))
 	mux.HandleFunc("PATCH /api/v1/teams/{team_name}", app.requireVerifiedUser(app.handleTeamPartialUpdate))
 	mux.HandleFunc("DELETE /api/v1/teams/{team_name}", app.requireVerifiedUser(app.handleTeamDeletion))
+	mux.HandleFunc("GET /api/v1/teams/{team_name}/members", app.requireVerifiedUser(app.handleRetrievalOfAllTeamMembers))
+	mux.HandleFunc("PATCH /api/v1/teams/{team_name}/members/{member_username}", app.requireVerifiedUser(app.handleMembershipPartialUpdate))
+	mux.HandleFunc("DELETE /api/v1/teams/{team_name}/members/{member_username}", app.requireVerifiedUser(app.handleTeamMemberRemoval))
 
 	mux.HandleFunc("POST /api/v1/invitations", app.requireVerifiedUser(app.handleInvitationCreation))
 	mux.HandleFunc("GET /api/v1/invitations", app.requireVerifiedUser(app.handleRetrievalOfAllInvitations))

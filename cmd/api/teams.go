@@ -180,6 +180,164 @@ func (app *application) handleTeamDeletion(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+func (app *application) handleRetrievalOfAllTeamMembers(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+
+	teamName := r.PathValue("team_name")
+
+	validator := validator.New()
+
+	var filters models.MembershipFilters
+
+	filters.MemberUsername = app.parseStringQueryParam(queryParams, "member_username", "")
+
+	roles := app.parseCSVQueryParam(queryParams, "roles", []string{})
+
+	paginationOpts := app.parsePaginationOptsFromQueryParams(queryParams, "", []string{""}, validator)
+
+	if validator.HasErrors() {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	retriever := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, teamName, retriever.ID)
+	if !ok {
+		return
+	}
+
+	members, metadata, validator, err := app.services.TeamService.GetAllTeamMembers(
+		ctx,
+		filters,
+		roles,
+		paginationOpts,
+		team.ID,
+	)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+	if validator != nil {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	envelope := envelope{"members": members, "metadata": metadata}
+	if err := app.sendJSONResponse(w, http.StatusOK, envelope, nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleMembershipPartialUpdate(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		NewRole string `json:"new_role"`
+	}
+
+	if err := app.parseJSONRequestBody(w, r, &input); err != nil {
+		app.handleJSONRequestBodyParseError(w, r, err)
+		return
+	}
+
+	updater := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, r.PathValue("team_name"), updater.ID)
+	if !ok {
+		return
+	}
+
+	user, ok := app.getUserByUsername(ctx, w, r, r.PathValue("member_username"))
+	if !ok {
+		return
+	}
+
+	isUserMember, err := app.services.TeamService.IsMember(ctx, team.ID, user.ID)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+
+	if !isUserMember {
+		app.sendForbiddenResponse(w, r, "This user is not a member of this team.")
+		return
+	}
+
+	validator, err := app.services.TeamService.UpdateMemberRole(ctx, team.ID, user.ID, input.NewRole, updater.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoPermission):
+			app.sendForbiddenResponse(w, r, "You do not have permission to update member's roles int this team.")
+		case errors.Is(err, services.ErrCannotChangeOwnerRole):
+			app.sendForbiddenResponse(w, r, "The owner cannot change their own role.")
+		case errors.Is(err, services.ErrEditConflict):
+			app.sendEditConflictResponse(w, r)
+		default:
+			app.sendServerErrorResponse(w, r, err)
+		}
+
+		return
+	}
+	if validator != nil {
+		app.sendValidationErrorResponse(w, r, validator.Errors)
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusNoContent, envelope{}, nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) handleTeamMemberRemoval(w http.ResponseWriter, r *http.Request) {
+	remover := app.getRequestContextUser(r)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	team, ok := app.getTeamByName(ctx, w, r, r.PathValue("team_name"), remover.ID)
+	if !ok {
+		return
+	}
+
+	user, ok := app.getUserByUsername(ctx, w, r, r.PathValue("member_username"))
+	if !ok {
+		return
+	}
+
+	isUserMember, err := app.services.TeamService.IsMember(ctx, team.ID, user.ID)
+	if err != nil {
+		app.sendServerErrorResponse(w, r, err)
+		return
+	}
+
+	if !isUserMember {
+		app.sendForbiddenResponse(w, r, "This user is not a member of this team.")
+		return
+	}
+
+	if err := app.services.TeamService.RemoveMemberFromTeam(ctx, team.ID, user.ID, remover.ID); err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoPermission):
+			app.sendForbiddenResponse(w, r, "You do not have permission to remove members from this team.")
+		case errors.Is(err, services.ErrCannotRemoveTeamOwner):
+			app.sendForbiddenResponse(w, r, "The team owner cannot be removed.")
+		default:
+			app.sendServerErrorResponse(w, r, err)
+		}
+
+		return
+	}
+
+	if err := app.sendJSONResponse(w, http.StatusNoContent, envelope{}, nil); err != nil {
+		app.sendServerErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) newTeamEnvelope(team *models.Team) envelope {
 	return envelope{"team": team}
 }

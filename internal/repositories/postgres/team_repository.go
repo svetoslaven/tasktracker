@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/svetoslaven/tasktracker/internal/models"
 	"github.com/svetoslaven/tasktracker/internal/pagination"
 	"github.com/svetoslaven/tasktracker/internal/repositories"
@@ -308,6 +309,126 @@ func (r *TeamRepository) DeleteInvitation(ctx context.Context, invitationID, rem
 	`
 
 	err := delete(ctx, r.DB, query, invitationID, removerID)
+	return err
+}
+
+func (r *TeamRepository) GetMembership(ctx context.Context, teamID, memberID int64) (*models.Membership, error) {
+	query := `
+	SELECT team_id, member_id, member_role, version
+	FROM memberships
+	WHERE team_id = $1 AND member_id = $2
+	`
+
+	var membership models.Membership
+	membership.Member = &models.User{}
+
+	err := r.DB.QueryRowContext(ctx, query, teamID, memberID).Scan(
+		&membership.TeamID,
+		&membership.Member.ID,
+		&membership.MemberRole,
+		&membership.Version,
+	)
+	if err != nil {
+		return nil, handleQueryRowError(err)
+	}
+
+	return &membership, nil
+}
+
+func (r *TeamRepository) GetAllTeamMembers(
+	ctx context.Context,
+	filters models.MembershipFilters,
+	paginationOpts pagination.Options,
+	teamID int64,
+) ([]*models.Membership, pagination.Metadata, error) {
+	var filterByRoleCondition string
+
+	args := []any{teamID, filters.MemberUsername, paginationOpts.Limit(), paginationOpts.Offset()}
+
+	if len(filters.MemberRoles) > 0 {
+		filterByRoleCondition = "AND memberships.member_role = ANY($5)"
+		args = append(args, pq.Array(filters.MemberRoles))
+	}
+
+	query := fmt.Sprintf(
+		`
+		SELECT 
+			count(*) OVER(),
+			member.username, member.email, member.is_verified,
+			memberships.member_role
+		FROM memberships
+		INNER JOIN users AS member ON member.id = memberships.member_id
+		WHERE memberships.team_id = $1 AND member.username ILIKE '%%' || $2 || '%%' %s
+		ORDER BY member.username ASC
+		LIMIT $3 OFFSET $4
+		`,
+		filterByRoleCondition,
+	)
+
+	rows, err := r.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, pagination.Metadata{}, err
+	}
+
+	defer rows.Close()
+
+	totalRecords := 0
+	memberships := []*models.Membership{}
+
+	for rows.Next() {
+		var membership models.Membership
+		membership.Member = &models.User{}
+
+		err := rows.Scan(
+			&totalRecords,
+			&membership.Member.Username, &membership.Member.Email, &membership.Member.IsVerified,
+			&membership.MemberRole,
+		)
+		if err != nil {
+			return nil, pagination.Metadata{}, err
+		}
+
+		memberships = append(memberships, &membership)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, pagination.Metadata{}, err
+	}
+
+	metadata := pagination.CalculateMetadata(paginationOpts.Page(), paginationOpts.PageSize(), totalRecords)
+	return memberships, metadata, nil
+}
+
+func (r *TeamRepository) UpdateMembership(ctx context.Context, membership *models.Membership) error {
+	query := `
+	UPDATE memberships
+	SET member_role = $1, version = version + 1
+	WHERE team_id = $2 AND member_id = $3 AND version = $4
+	RETURNING version
+	`
+
+	args := []any{membership.MemberRole, membership.TeamID, membership.Member.ID, membership.Version}
+
+	err := r.DB.QueryRowContext(ctx, query, args...).Scan(&membership.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return repositories.ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *TeamRepository) DeleteMembership(ctx context.Context, teamID, memberID int64) error {
+	query := `
+	DELETE FROM memberships
+	WHERE team_id = $1 AND member_id = $2
+	`
+
+	err := delete(ctx, r.DB, query, teamID, memberID)
 	return err
 }
 

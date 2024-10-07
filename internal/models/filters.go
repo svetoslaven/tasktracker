@@ -9,3 +9,8 @@ type InvitationFilters struct {
 	TeamName  string
 	IsInviter *bool
 }
+
+type MembershipFilters struct {
+	MemberUsername string
+	MemberRoles    []MemberRole
+}

@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
 	"github.com/svetoslaven/tasktracker/internal/pagination"
@@ -207,6 +208,101 @@ func (s *TeamService) DeleteInvitation(ctx context.Context, invitationID, remove
 	}
 
 	return nil
+}
+
+func (s *TeamService) GetAllTeamMembers(
+	ctx context.Context,
+	filters models.MembershipFilters,
+	roles []string,
+	paginationOpts pagination.Options,
+	teamID int64,
+) ([]*models.Membership, pagination.Metadata, *validator.Validator, error) {
+	validator := validator.New()
+
+	for _, role := range roles {
+		memberRole, err := models.NewMemberRole(role)
+		if err != nil {
+			validator.AddError("roles", fmt.Sprintf("Contains an invalid member role %q.", role))
+			break
+		}
+
+		filters.MemberRoles = append(filters.MemberRoles, memberRole)
+	}
+
+	if validator.HasErrors() {
+		return nil, pagination.Metadata{}, validator, nil
+	}
+
+	memberships, metadata, err := s.TeamRepo.GetAllTeamMembers(ctx, filters, paginationOpts, teamID)
+	return memberships, metadata, nil, err
+}
+
+func (s *TeamService) UpdateMemberRole(
+	ctx context.Context,
+	teamID, memberID int64,
+	newRole string,
+	updaterID int64,
+) (*validator.Validator, error) {
+	validator := validator.New()
+
+	memberRole, err := models.NewMemberRole(newRole)
+	if err != nil {
+		validator.AddError("new_role", "Must be a valid member role.")
+		return validator, nil
+	}
+
+	canUpdateMemberRole, err := s.isMemberInRole(ctx, teamID, updaterID, models.MemberRoleOwner)
+	if err != nil {
+		return nil, err
+	}
+
+	if !canUpdateMemberRole {
+		return nil, services.ErrNoPermission
+	}
+
+	if updaterID == memberID {
+		return nil, services.ErrCannotChangeOwnerRole
+	}
+
+	membership, err := s.TeamRepo.GetMembership(ctx, teamID, memberID)
+	if err != nil {
+		return nil, err
+	}
+
+	if membership.MemberRole == memberRole {
+		return nil, nil
+	}
+
+	membership.MemberRole = memberRole
+
+	if err := s.TeamRepo.UpdateMembership(ctx, membership); err != nil {
+		return nil, handleRepositoryUpdateError(err)
+	}
+
+	return nil, nil
+}
+
+func (s *TeamService) RemoveMemberFromTeam(ctx context.Context, teamID, memberID, removerID int64) error {
+	isRemovedMemberOwner, err := s.isMemberInRole(ctx, teamID, memberID, models.MemberRoleOwner)
+	if err != nil {
+		return err
+	}
+
+	if isRemovedMemberOwner {
+		return services.ErrCannotRemoveTeamOwner
+	}
+
+	canRemoveMember, err := s.isMemberInRole(ctx, teamID, removerID, models.MemberRoleAdmin)
+	if err != nil {
+		return err
+	}
+
+	if canRemoveMember || removerID == memberID {
+		err = s.TeamRepo.DeleteMembership(ctx, teamID, memberID)
+		return err
+	}
+
+	return services.ErrNoPermission
 }
 
 func (s *TeamService) isMemberInRole(

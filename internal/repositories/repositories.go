@@ -47,6 +47,11 @@ type TeamRepository interface {
 	AcceptInvitation(ctx context.Context, invitationID, inviteeID int64) error
 	RejectInvitation(ctx context.Context, invitationID, inviteeID int64) error
 	DeleteInvitation(ctx context.Context, invitationID, removerID int64) error
+
+	GetMembership(ctx context.Context, teamID, memberID int64) (*models.Membership, error)
+	GetAllTeamMembers(ctx context.Context, filters models.MembershipFilters, paginationOpts pagination.Options, teamID int64) ([]*models.Membership, pagination.Metadata, error)
+	UpdateMembership(ctx context.Context, membership *models.Membership) error
+	DeleteMembership(ctx context.Context, teamID, memberID int64) error
 }
 
 type RepositoryRegistry struct {

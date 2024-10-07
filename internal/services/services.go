@@ -17,7 +17,9 @@ var (
 
 	ErrNoPermission = errors.New("services: no permission")
 
-	ErrInvitationExists = errors.New("services: invitation already exists")
+	ErrInvitationExists      = errors.New("services: invitation already exists")
+	ErrCannotRemoveTeamOwner = errors.New("services: cannot remove team owner")
+	ErrCannotChangeOwnerRole = errors.New("services: cannot change owner role")
 )
 
 type UserService interface {
@@ -48,6 +50,10 @@ type TeamService interface {
 	AcceptInvitation(ctx context.Context, invitationID, inviteeID int64) error
 	RejectInvitation(ctx context.Context, invitationID, inviteeID int64) error
 	DeleteInvitation(ctx context.Context, invitationID, removerID int64) error
+
+	GetAllTeamMembers(ctx context.Context, filters models.MembershipFilters, roles []string, paginationOpts pagination.Options, teamID int64) ([]*models.Membership, pagination.Metadata, *validator.Validator, error)
+	UpdateMemberRole(ctx context.Context, teamID, memberID int64, newRole string, updaterID int64) (*validator.Validator, error)
+	RemoveMemberFromTeam(ctx context.Context, teamID, memberID, removerID int64) error
 }
 
 type ServiceRegistry struct {
