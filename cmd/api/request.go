@@ -84,3 +84,12 @@ func (app *application) parseBoolQueryParam(
 		return fallback
 	}
 }
+
+func (app *application) parseInt64PathParam(r *http.Request, key string) (int64, error) {
+	intValue, err := strconv.ParseInt(r.PathValue(key), 10, 64)
+	if err != nil {
+		return 0, errors.New("invalid int64 path parameter")
+	}
+
+	return intValue, nil
+}
