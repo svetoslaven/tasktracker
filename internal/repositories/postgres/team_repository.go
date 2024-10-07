@@ -166,21 +166,8 @@ func (r *TeamRepository) DeleteTeam(ctx context.Context, teamID int64) error {
 	WHERE id = $1 
 	`
 
-	result, err := r.DB.ExecContext(ctx, query, teamID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return repositories.ErrNoRecordsFound
-	}
-
-	return nil
+	err := delete(ctx, r.DB, query, teamID)
+	return err
 }
 
 func (r *TeamRepository) InsertInvitation(ctx context.Context, teamID, inviterID, inviteeID int64) error {
@@ -310,21 +297,8 @@ func (r *TeamRepository) RejectInvitation(ctx context.Context, invitationID, inv
 	WHERE id = $1 AND invitee_id = $2
 	`
 
-	result, err := r.DB.ExecContext(ctx, query, invitationID, inviteeID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return repositories.ErrNoRecordsFound
-	}
-
-	return nil
+	err := delete(ctx, r.DB, query, invitationID, inviteeID)
+	return err
 }
 
 func (r *TeamRepository) DeleteInvitation(ctx context.Context, invitationID, removerID int64) error {
@@ -333,21 +307,8 @@ func (r *TeamRepository) DeleteInvitation(ctx context.Context, invitationID, rem
 	WHERE id = $1 AND inviter_id = $2
 	`
 
-	result, err := r.DB.ExecContext(ctx, query, invitationID, removerID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return repositories.ErrNoRecordsFound
-	}
-
-	return nil
+	err := delete(ctx, r.DB, query, invitationID, removerID)
+	return err
 }
 
 func (r *TeamRepository) isDuplicateTeamNameError(err error) bool {
