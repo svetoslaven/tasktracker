@@ -85,6 +85,16 @@ func (app *application) parseBoolQueryParam(
 	}
 }
 
+func (app *application) parseCSVQueryParam(queryParams url.Values, key string, fallback []string) []string {
+	csv := queryParams.Get(key)
+
+	if csv == "" {
+		return fallback
+	}
+
+	return strings.Split(csv, ",")
+}
+
 func (app *application) parseInt64PathParam(r *http.Request, key string) (int64, error) {
 	intValue, err := strconv.ParseInt(r.PathValue(key), 10, 64)
 	if err != nil {
