@@ -28,6 +28,12 @@ type config struct {
 		password string
 		sender   string
 	}
+
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
 func loadConfig() config {
@@ -73,6 +79,15 @@ func loadConfig() config {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "Set SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", os.Getenv("SMTP_SENDER"), "Set SMTP sender")
 
+	flag.Float64Var(
+		&cfg.limiter.rps,
+		"limiter-rps",
+		parseFloat64Env("LIMITER_RPS", 2),
+		"Set rate limiter maximum requests per second",
+	)
+	flag.IntVar(&cfg.limiter.burst, "limiter-burst", parseIntEnv("LIMITER_BURST", 4), "Set rate limiter maximum burst")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", parseBoolEnv("LIMITER_ENABLED", true), "Enable rate limiter")
+
 	flag.Parse()
 
 	cfg.environment = strings.ToLower(cfg.environment)
@@ -110,6 +125,34 @@ func parseStringEnv(key, fallback string) string {
 	}
 
 	return value
+}
+
+func parseFloat64Env(key string, fallback float64) float64 {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	float64Value, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return fallback
+	}
+
+	return float64Value
+}
+
+func parseBoolEnv(key string, fallback bool) bool {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+
+	return boolValue
 }
 
 func parseDurationEnv(key string, fallback time.Duration) time.Duration {

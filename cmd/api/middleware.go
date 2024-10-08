@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/models"
+	"golang.org/x/time/rate"
 )
 
 type middleware func(http.Handler) http.Handler
@@ -105,6 +108,61 @@ func (app *application) enforceURILength(next http.Handler) http.Handler {
 		if len(r.RequestURI) > maxURIBytes {
 			app.sendErrorResponse(w, r, http.StatusRequestURITooLong, "URI too long.")
 			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) rateLimit(next http.Handler) http.Handler {
+	type client struct {
+		limiter  *rate.Limiter
+		lastSeen time.Time
+	}
+
+	var (
+		clientLock sync.Mutex
+		clients    = make(map[string]*client)
+	)
+
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			clientLock.Lock()
+
+			for ip, client := range clients {
+				if time.Since(client.lastSeen) > 1*time.Minute {
+					delete(clients, ip)
+				}
+			}
+
+			clientLock.Unlock()
+		}
+	}()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.cfg.limiter.enabled {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.sendServerErrorResponse(w, r, err)
+				return
+			}
+
+			clientLock.Lock()
+
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
+			}
+
+			clients[ip].lastSeen = time.Now()
+
+			if !clients[ip].limiter.Allow() {
+				clientLock.Unlock()
+				app.sendErrorResponse(w, r, http.StatusTooManyRequests, "Rate limit exceeded.")
+				return
+			}
+
+			clientLock.Unlock()
 		}
 
 		next.ServeHTTP(w, r)

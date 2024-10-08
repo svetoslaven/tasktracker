@@ -38,7 +38,12 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("PUT /api/v1/teams/{team_name}/tasks/completed", app.requireVerifiedUser(app.handleTaskCompletion))
 	mux.HandleFunc("PUT /api/v1/teams/{team_name}/tasks/cancelled", app.requireVerifiedUser(app.handleTaskCancellation))
 
-	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.enforceURILength, app.authenticate)
+	standardMiddlewareChain := app.newMiddlewareChain(
+		app.recoverPanic,
+		app.rateLimit,
+		app.enforceURILength,
+		app.authenticate,
+	)
 
 	return standardMiddlewareChain(mux)
 }
