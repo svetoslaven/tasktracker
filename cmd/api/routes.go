@@ -40,6 +40,7 @@ func (app *application) registerRoutes() http.Handler {
 
 	standardMiddlewareChain := app.newMiddlewareChain(
 		app.recoverPanic,
+		app.enableCORS,
 		app.rateLimit,
 		app.enforceURILength,
 		app.authenticate,

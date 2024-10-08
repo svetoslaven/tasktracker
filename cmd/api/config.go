@@ -34,6 +34,10 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+
+	cors struct {
+		trustedOrigins []string
+	}
 }
 
 func loadConfig() config {
@@ -87,6 +91,15 @@ func loadConfig() config {
 	)
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", parseIntEnv("LIMITER_BURST", 4), "Set rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", parseBoolEnv("LIMITER_ENABLED", true), "Enable rate limiter")
+
+	flag.Func("cors-trusted-origins", "Set trusted CORS origins (comma separated)", func(s string) error {
+		if s == "" {
+			s = parseStringEnv("CORS_TRUSTED_ORIGINS", s)
+		}
+
+		cfg.cors.trustedOrigins = strings.Split(s, ",")
+		return nil
+	})
 
 	flag.Parse()
 
