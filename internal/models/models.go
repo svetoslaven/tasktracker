@@ -39,3 +39,16 @@ type Membership struct {
 	MemberRole MemberRole `json:"role"`
 	Version    int        `json:"-"`
 }
+
+type Task struct {
+	ID          int64        `json:"id"`
+	CreatedAt   time.Time    `json:"created_at"`
+	Due         time.Time    `json:"due"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	Status      TaskStatus   `json:"status"`
+	Priority    TaskPriority `json:"priority"`
+	Creator     *User        `json:"creator"`
+	Assignee    *User        `json:"assignee"`
+	Version     int          `json:"-"`
+}

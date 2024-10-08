@@ -20,6 +20,9 @@ var (
 	ErrInvitationExists      = errors.New("services: invitation already exists")
 	ErrCannotRemoveTeamOwner = errors.New("services: cannot remove team owner")
 	ErrCannotChangeOwnerRole = errors.New("services: cannot change owner role")
+
+	ErrTaskOverdue        = errors.New("services: task overdue")
+	ErrTaskStatusConflict = errors.New("services: task status conflict")
 )
 
 type UserService interface {
@@ -56,8 +59,16 @@ type TeamService interface {
 	RemoveMemberFromTeam(ctx context.Context, teamID, memberID, removerID int64) error
 }
 
+type TaskService interface {
+	CreateTask(ctx context.Context, due time.Time, title, description string, priority string, creator, assignee *models.User, teamID int64) (*models.Task, *validator.Validator, error)
+	GetTaskByID(ctx context.Context, taskID, teamID int64) (*models.Task, error)
+	GetAllTasks(ctx context.Context, filters models.TaskFilters, status, priority []string, paginationOpts pagination.Options, teamID int64) ([]*models.Task, pagination.Metadata, *validator.Validator, error)
+	UpdateTaskStatus(ctx context.Context, task *models.Task, newStatus models.TaskStatus, updaterID int64) error
+}
+
 type ServiceRegistry struct {
 	UserService  UserService
 	TokenService TokenService
 	TeamService  TeamService
+	TaskService  TaskService
 }

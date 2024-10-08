@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/svetoslaven/tasktracker/internal/services"
 )
@@ -16,6 +17,7 @@ func (app *application) handleJSONRequestBodyParseError(w http.ResponseWriter, r
 	var unmarshalTypeError *json.UnmarshalTypeError
 	var invalidUnmarshalError *json.InvalidUnmarshalError
 	var maxBytesError *http.MaxBytesError
+	var timeParseError *time.ParseError
 
 	var msg string
 
@@ -39,6 +41,8 @@ func (app *application) handleJSONRequestBodyParseError(w http.ResponseWriter, r
 		msg = fmt.Sprintf("The body must not be larger than %d bytes.", maxBytesError.Limit)
 	case err.Error() == "expected EOF":
 		msg = "The body must only contain a single JSON value."
+	case strings.HasPrefix(err.Error(), "Time.UnmarshalJSON") || errors.As(err, &timeParseError):
+		msg = "The body contains invalid time values."
 	case errors.As(err, &invalidUnmarshalError):
 		panic(err)
 	default:

@@ -54,8 +54,16 @@ type TeamRepository interface {
 	DeleteMembership(ctx context.Context, teamID, memberID int64) error
 }
 
+type TaskRepository interface {
+	Insert(ctx context.Context, task *models.Task, creatorID, assigneeID, teamID int64) error
+	GetByID(ctx context.Context, taskID, teamID int64) (*models.Task, error)
+	GetAll(ctx context.Context, filters models.TaskFilters, teamID int64, paginationOpts pagination.Options) ([]*models.Task, pagination.Metadata, error)
+	UpdateTaskStatus(ctx context.Context, task *models.Task, newStatus models.TaskStatus) error
+}
+
 type RepositoryRegistry struct {
 	UserRepo  UserRepository
 	TokenRepo TokenRepository
 	TeamRepo  TeamRepository
+	TaskRepo  TaskRepository
 }

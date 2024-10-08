@@ -31,6 +31,13 @@ func (app *application) registerRoutes() http.Handler {
 	mux.HandleFunc("POST /api/v1/invitations/rejected", app.requireVerifiedUser(app.handleInvitationRejecting))
 	mux.HandleFunc("DELETE /api/v1/invitations/{invitation_id}", app.requireVerifiedUser(app.handleInvitationDeletion))
 
+	mux.HandleFunc("POST /api/v1/teams/{team_name}/tasks", app.requireVerifiedUser(app.handleTaskCreation))
+	mux.HandleFunc("GET /api/v1/teams/{team_name}/tasks/{task_id}", app.requireVerifiedUser(app.handleTaskRetrievalByID))
+	mux.HandleFunc("GET /api/v1/teams/{team_name}/tasks", app.requireVerifiedUser(app.handleRetrievalOfAllTasks))
+	mux.HandleFunc("PUT /api/v1/teams/{team_name}/tasks/in-progress", app.requireVerifiedUser(app.handleTaskStart))
+	mux.HandleFunc("PUT /api/v1/teams/{team_name}/tasks/completed", app.requireVerifiedUser(app.handleTaskCompletion))
+	mux.HandleFunc("PUT /api/v1/teams/{team_name}/tasks/cancelled", app.requireVerifiedUser(app.handleTaskCancellation))
+
 	standardMiddlewareChain := app.newMiddlewareChain(app.recoverPanic, app.enforceURILength, app.authenticate)
 
 	return standardMiddlewareChain(mux)
